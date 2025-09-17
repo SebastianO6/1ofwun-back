@@ -9,7 +9,8 @@ class Product(db.Model):
     name = db.Column(db.String(200), nullable=False)
     price = db.Column(db.Float, nullable=False)
     category = db.Column(db.String(100), index=True)
-    image_filename = db.Column(db.String(256))  # store uploaded filename
+    image_filename = db.Column(db.String(256))
+    featured = db.Column(db.Boolean, default=False, nullable=False)  # ✅ new field
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def image_url(self):
@@ -24,5 +25,6 @@ class Product(db.Model):
             "price": self.price,
             "category": self.category,
             "image_url": self.image_url(),
+            "featured": self.featured,  # ✅ include featured in response
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }

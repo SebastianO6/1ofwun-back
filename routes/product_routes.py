@@ -31,17 +31,19 @@ def list_products():
 
 
 # POST create product (accepts multipart form-data with optional image)
+# POST create product
 @product_bp.route("", methods=["POST"])
 @admin_required
 def create_product():
     name = request.form.get("name")
     price = request.form.get("price")
     category = request.form.get("category")
+    featured_raw = request.form.get("featured", "false")
+    featured = str(featured_raw).lower() in ("true", "1", "yes", "on")  # ✅ parse
 
     if not (name and price):
         return jsonify({"msg": "name and price required"}), 400
 
-    # handle image upload
     filename = None
     image = request.files.get("image")
     if image:
@@ -54,7 +56,8 @@ def create_product():
         name=name,
         price=float(price),
         category=category,
-        image_filename=filename
+        featured=featured,  # ✅ save
+        image_filename=filename,
     )
     db.session.add(prod)
     db.session.commit()
@@ -72,7 +75,10 @@ def update_product(pid):
     if "price" in data: prod.price = float(data["price"])
     if "category" in data: prod.category = data["category"]
 
-    # replace image if new one uploaded
+    if "featured" in data:
+        featured_raw = data["featured"]
+        prod.featured = str(featured_raw).lower() in ("true", "1", "yes", "on")  # ✅ update
+
     image = request.files.get("image")
     if image:
         raw = secure_filename(image.filename)
@@ -83,6 +89,7 @@ def update_product(pid):
 
     db.session.commit()
     return jsonify(prod.to_dict())
+
 
 
 # DELETE product

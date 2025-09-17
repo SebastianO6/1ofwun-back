@@ -5,12 +5,14 @@ from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
 
+
 from models import db, bcrypt
 from models.user import User  # 👈 needed for seeding
 from routes.auth_routes import auth_bp
 from routes.user_routes import user_bp
 from routes.product_routes import product_bp
 from routes.order_routes import order_bp
+from routes.contact import contact_bp
 
 
 from models.user import User
@@ -38,6 +40,7 @@ def seed_admin(app):
 
 
 
+
 def create_app():
     load_dotenv()  
     app = Flask(__name__, static_folder="static", static_url_path="/static")
@@ -61,7 +64,7 @@ def create_app():
     bcrypt.init_app(app)
     Migrate(app, db)
 
-    # ✅ Improved CORS config
+    # ✅ Allow ALL /api/* routes including /api/contact
     CORS(
         app,
         resources={r"/api/*": {"origins": frontend_origin}},
@@ -70,8 +73,6 @@ def create_app():
     )
 
     JWTManager(app)
-
-    # Avoid trailing-slash redirects
     app.url_map.strict_slashes = False
 
     # register blueprints
@@ -79,12 +80,12 @@ def create_app():
     app.register_blueprint(user_bp, url_prefix="/api/users")
     app.register_blueprint(product_bp, url_prefix="/api/products")
     app.register_blueprint(order_bp, url_prefix="/api/orders")
+    app.register_blueprint(contact_bp, url_prefix="/api/contact")  # ✅ corrected
 
     @app.route("/")
     def index():
         return jsonify({"message": "1OfWun API running"})
 
-    # Seed admin user on startup
     seed_admin(app)
-
     return app
+
