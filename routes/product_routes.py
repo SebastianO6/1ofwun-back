@@ -24,10 +24,24 @@ def admin_required(fn):
 
 
 # GET all products
+# GET all products (paginated)
 @product_bp.route("", methods=["GET"])
 def list_products():
-    prods = Product.query.order_by(Product.created_at.desc()).all()
-    return jsonify([p.to_dict() for p in prods])
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 6, type=int)
+
+    products = Product.query.order_by(Product.created_at.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+
+    return jsonify({
+        "items": [p.to_dict() for p in products.items],
+        "total": products.total,
+        "page": products.page,
+        "per_page": products.per_page,
+        "pages": products.pages
+    })
+
 
 
 # POST create product (accepts multipart form-data with optional image)
