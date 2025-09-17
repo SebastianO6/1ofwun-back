@@ -41,12 +41,15 @@ def create_app():
     load_dotenv()
     app = Flask(__name__, static_folder="static", static_url_path="/static")
 
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL") or "sqlite:///dev.db"
+    uri = os.getenv("DATABASE_URL") or "sqlite:///dev.db"
+    if uri.startswith("postgres://"):  
+        uri = uri.replace("postgres://", "postgresql://", 1)
+    app.config["SQLALCHEMY_DATABASE_URI"] = uri
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "change-this-in-prod")
 
-    frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:3000")
+    frontend_origin = os.getenv("FRONTEND_ORIGIN", "https://oneofwun-web.onrender.com/")
 
     app.config["UPLOAD_FOLDER"] = os.path.join(app.root_path, "static", "uploads")
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
