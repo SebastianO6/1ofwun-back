@@ -67,11 +67,12 @@ def create_app():
 
     CORS(
         app,
-        origins=[frontend_origin],
+        resources={r"/*": {"origins": [frontend_origin]}},
         supports_credentials=True,
-        allow_headers=["*"],
+        allow_headers=["Content-Type", "Authorization"],
         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     )
+
 
 
     # Blueprints
