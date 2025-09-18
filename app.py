@@ -81,6 +81,27 @@ def create_app():
     def index():
         return jsonify({"message": "1OfWun API running"})
 
+    # ✅ Debug route (remove after testing!)
+    @app.route("/debug-admin")
+    def debug_admin():
+        admin_pw = os.getenv("ADMIN_PASSWORD", "Not set")
+        user = User.query.filter_by(email="1ofwun25@gmail.com").first()
+
+        match_test = None
+        if user:
+            try:
+                match_test = bcrypt.check_password_hash(user.password_hash, admin_pw)
+            except Exception as e:
+                match_test = f"Error checking hash: {e}"
+
+        return jsonify({
+            "env_ADMIN_PASSWORD": admin_pw,
+            "db_user_exists": bool(user),
+            "db_user_email": user.email if user else None,
+            "db_user_hash": user.password_hash if user else None,
+            "password_matches_env": match_test
+        })
+
     # Run migrations + seed admin inside app context
     with app.app_context():
         try:
