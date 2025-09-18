@@ -35,6 +35,7 @@ def seed_admin():
     print(f"✅ Admin created: {admin_email}")
 
 
+
 def create_app():
     """Flask application factory."""
     load_dotenv()
@@ -68,7 +69,7 @@ def create_app():
         app,
         origins=[frontend_origin],
         supports_credentials=True,
-        allow_headers=["Content-Type", "Authorization"],
+        allow_headers=["*"],
         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     )
 
@@ -84,6 +85,10 @@ def create_app():
     @app.route("/")
     def index():
         return jsonify({"message": "1OfWun API running"})
+    
+    @app.route("/test-cors", methods=["GET", "OPTIONS"])
+    def test_cors():
+        return jsonify({"message": "CORS works!"})
 
     # ✅ Debug route (remove after testing!)
     @app.route("/debug-admin")
