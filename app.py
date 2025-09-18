@@ -60,13 +60,14 @@ def create_app():
     migrate = Migrate(app, db)
     jwt = JWTManager(app)
 
-    # CORS setup
-    frontend_origin = os.getenv("FRONTEND_ORIGIN", "https://oneofwun-web.onrender.com/")
+    # ✅ Fixed CORS setup
+    frontend_origin = os.getenv("FRONTEND_ORIGIN", "https://oneofwun-web.onrender.com")
     CORS(
         app,
-        resources={r"/api/*": {"origins": frontend_origin}},
+        resources={r"/api/*": {"origins": [frontend_origin]}},
         supports_credentials=True,
         allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     )
 
     # Blueprints
