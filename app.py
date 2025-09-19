@@ -1,5 +1,5 @@
 import os
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_migrate import Migrate, upgrade
 from flask_jwt_extended import JWTManager
@@ -35,7 +35,6 @@ def seed_admin():
     print(f"✅ Admin created: {admin_email}")
 
 
-
 def create_app():
     """Flask application factory."""
     load_dotenv()
@@ -61,10 +60,7 @@ def create_app():
     migrate = Migrate(app, db)
     jwt = JWTManager(app)
 
-    # ✅ Fixed CORS setup
-# ✅ Fixed CORS setup
     frontend_origin = os.getenv("FRONTEND_ORIGIN", "https://oneofwun-web.onrender.com")
-
     CORS(
         app,
         resources={r"/*": {"origins": [frontend_origin]}},
@@ -73,9 +69,6 @@ def create_app():
         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     )
 
-
-
-    # Blueprints
     app.url_map.strict_slashes = False
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(user_bp, url_prefix="/api/users")
@@ -91,7 +84,6 @@ def create_app():
     def test_cors():
         return jsonify({"message": "CORS works!"})
 
-    # ✅ Debug route (remove after testing!)
     @app.route("/debug-admin")
     def debug_admin():
         admin_pw = os.getenv("ADMIN_PASSWORD", "Not set")
@@ -112,7 +104,10 @@ def create_app():
             "password_matches_env": match_test
         })
 
-    # Run migrations + seed admin inside app context
+    @app.route("/uploads/<path:filename>")
+    def uploaded_file(filename):
+        return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+
     with app.app_context():
         try:
             upgrade()
