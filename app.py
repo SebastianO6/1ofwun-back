@@ -1,9 +1,10 @@
 import os
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_migrate import Migrate, upgrade
 from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
+import cloudinary
 
 from models import db, bcrypt
 from models.user import User  
@@ -38,11 +39,11 @@ def seed_admin():
 def create_app():
     """Flask application factory."""
     load_dotenv()
-    app = Flask(__name__, static_folder="static", static_url_path="/static")
+    app = Flask(__name__)
 
     # Database config
     uri = os.getenv("DATABASE_URL") or "sqlite:///dev.db"
-    if uri.startswith("postgres://"):  
+    if uri.startswith("postgres://"):
         uri = uri.replace("postgres://", "postgresql://", 1)
     app.config["SQLALCHEMY_DATABASE_URI"] = uri
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -50,15 +51,18 @@ def create_app():
     # JWT config
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "change-this-in-prod")
 
-    # File upload config
-    app.config["UPLOAD_FOLDER"] = os.path.join(app.root_path, "static", "uploads")
-    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+    # Cloudinary config
+    cloudinary.config(
+        cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+        api_key=os.getenv("CLOUDINARY_API_KEY"),
+        api_secret=os.getenv("CLOUDINARY_API_SECRET")
+    )
 
     # Init extensions
     db.init_app(app)
     bcrypt.init_app(app)
-    migrate = Migrate(app, db)
-    jwt = JWTManager(app)
+    Migrate(app, db)
+    JWTManager(app)
 
     frontend_origin = os.getenv("FRONTEND_ORIGIN", "https://oneofwun-web.onrender.com")
     CORS(
@@ -79,34 +83,6 @@ def create_app():
     @app.route("/")
     def index():
         return jsonify({"message": "1OfWun API running"})
-    
-    @app.route("/test-cors", methods=["GET", "OPTIONS"])
-    def test_cors():
-        return jsonify({"message": "CORS works!"})
-
-    @app.route("/debug-admin")
-    def debug_admin():
-        admin_pw = os.getenv("ADMIN_PASSWORD", "Not set")
-        user = User.query.filter_by(email="1ofwun25@gmail.com").first()
-
-        match_test = None
-        if user:
-            try:
-                match_test = bcrypt.check_password_hash(user.password_hash, admin_pw)
-            except Exception as e:
-                match_test = f"Error checking hash: {e}"
-
-        return jsonify({
-            "env_ADMIN_PASSWORD": admin_pw,
-            "db_user_exists": bool(user),
-            "db_user_email": user.email if user else None,
-            "db_user_hash": user.password_hash if user else None,
-            "password_matches_env": match_test
-        })
-
-    @app.route("/uploads/<path:filename>")
-    def uploaded_file(filename):
-        return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
     with app.app_context():
         try:

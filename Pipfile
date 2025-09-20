@@ -15,6 +15,7 @@ flask_cors = "*"
 python-dotenv = "*"
 psycopg2-binary = "*"
 gunicorn = "*"
+cloudinary = "*"
 
 [requires]
 python_version = "3.12"

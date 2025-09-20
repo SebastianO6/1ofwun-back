@@ -1,5 +1,4 @@
 from datetime import datetime
-from flask import url_for
 from models import db
 
 class Product(db.Model):
@@ -9,14 +8,10 @@ class Product(db.Model):
     name = db.Column(db.String(200), nullable=False)
     price = db.Column(db.Float, nullable=False)
     category = db.Column(db.String(100), index=True)
-    image_filename = db.Column(db.String(256))
-    featured = db.Column(db.Boolean, default=False, nullable=False)  # ✅ new field
+    image = db.Column(db.String(512))
+    image_public_id = db.Column(db.String(255)) 
+    featured = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    def image_url(self):
-        if not self.image_filename:
-            return None
-        return url_for("static", filename=f"uploads/{self.image_filename}", _external=True)
 
     def to_dict(self):
         return {
@@ -24,7 +19,8 @@ class Product(db.Model):
             "name": self.name,
             "price": self.price,
             "category": self.category,
-            "image_url": self.image_url(),
-            "featured": self.featured,  # ✅ include featured in response
+            "image": self.image,
+            "image_public_id": self.image_public_id,
+            "featured": self.featured,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
