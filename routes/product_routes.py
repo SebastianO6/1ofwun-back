@@ -7,12 +7,15 @@ from models.user import User
 from functools import wraps
 import cloudinary.uploader
 
+
 product_bp = Blueprint("product", __name__)
 
+
 # -------------------------------
-# Admin-only check
+# Helpers
 # -------------------------------
 def admin_required(fn):
+    """Restrict route to admin users only."""
     @wraps(fn)
     @jwt_required()
     def wrapper(*args, **kwargs):
@@ -22,6 +25,15 @@ def admin_required(fn):
             return jsonify({"msg": "admins only"}), 403
         return fn(*args, **kwargs)
     return wrapper
+
+
+def build_cloudinary_url(public_id, width=400, height=400):
+    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
+    return (
+        f"https://res.cloudinary.com/{cloud_name}/image/upload/"
+        f"c_fill,w_{width},h_{height},q_auto,f_auto/{public_id}.jpg"
+    )
+
 
 
 # -------------------------------
@@ -61,12 +73,18 @@ def create_product():
         return jsonify({"msg": "name and price required"}), 400
 
     image_url = None
+    thumb_url = None
     image_pid = None
     image = request.files.get("image")
+
     if image:
-        upload_result = cloudinary.uploader.upload(image)
-        image_url = upload_result["secure_url"]
-        image_pid = upload_result["public_id"]
+        try:
+            upload_result = cloudinary.uploader.upload(image)
+            image_url = upload_result.get("secure_url")        # full-size
+            image_pid = upload_result.get("public_id")
+            thumb_url = build_cloudinary_url(image_pid)        # optimized
+        except Exception as e:
+            return jsonify({"msg": f"Image upload failed: {str(e)}"}), 500
 
     prod = Product(
         name=name,
@@ -74,6 +92,7 @@ def create_product():
         category=category,
         featured=featured,
         image=image_url,
+        thumbnail=thumb_url,
         image_public_id=image_pid
     )
     db.session.add(prod)
@@ -90,9 +109,12 @@ def update_product(pid):
     prod = Product.query.get_or_404(pid)
     data = request.form if request.form else (request.json or {})
 
-    if "name" in data: prod.name = data["name"]
-    if "price" in data: prod.price = float(data["price"])
-    if "category" in data: prod.category = data["category"]
+    if "name" in data: 
+        prod.name = data["name"]
+    if "price" in data: 
+        prod.price = float(data["price"])
+    if "category" in data: 
+        prod.category = data["category"]
 
     if "featured" in data:
         featured_raw = data["featured"]
@@ -107,10 +129,13 @@ def update_product(pid):
             except Exception as e:
                 print("⚠️ Failed to delete old image:", e)
 
-        # upload new one
-        upload_result = cloudinary.uploader.upload(image)
-        prod.image = upload_result["secure_url"]
-        prod.image_public_id = upload_result["public_id"]
+        try:
+            upload_result = cloudinary.uploader.upload(image)
+            prod.image_public_id = upload_result.get("public_id")
+            prod.image = upload_result.get("secure_url")             # full-size
+            prod.thumbnail = build_cloudinary_url(prod.image_public_id)  # optimized
+        except Exception as e:
+            return jsonify({"msg": f"Image upload failed: {str(e)}"}), 500
 
     db.session.commit()
     return jsonify(prod.to_dict())
